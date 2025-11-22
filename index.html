@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculadora Precio Impresión 3D</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",Arial}
+    body{margin:0;background:linear-gradient(180deg,#071427 0%, #081224 100%);color:#e6eef6;padding:28px;min-height:100vh}
+    .wrap{max-width:920px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header h1{font-size:20px;margin:0}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6);}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=number], select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);color:inherit}
+    .row{display:flex;gap:12px}
+    .full{grid-column:1/ -1}
+    button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#062023;font-weight:700;cursor:pointer}
+    .result{margin-top:14px;padding:14px;border-radius:10px;background:linear-gradient(180deg, rgba(6,182,212,0.08), rgba(6,182,212,0.03));color:#e6eef6}
+    .muted-line{font-size:13px;color:var(--muted);margin-top:8px}
+    .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .small{font-size:13px;color:var(--muted)}
+    .toggle-inline{display:flex;align-items:center;gap:8px}
+    @media(max-width:720px){.grid{grid-template-columns:1fr}.breakdown{grid-template-columns:1fr}.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Calculadora de Precio - Impresión 3D</h1>
+      <div class="muted-line">Ingresa los valores y hace click en <strong>Calcular</strong></div>
+    </header>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="filamento">Filamento (gramos)</label>
+          <input id="filamento" type="number" min="0" step="1" value="0">
+          <div class="small muted-line">Costo por gramo: $20</div>
+        </div>
+
+        <div>
+          <label for="horasImpresion">Horas de impresión</label>
+          <input id="horasImpresion" type="number" min="0" step="0.25" value="0">
+          <div class="small muted-line">Tarifa: $30 por hora (impresión)</div>
+        </div>
+
+        <div>
+          <label for="tandas">Tandas (veces de impresión misma placa)</label>
+          <input id="tandas" type="number" min="1" step="1" value="1">
+          <div class="small muted-line">Tandas multiplican Filamento, Horas de impresión y Llavero</div>
+        </div>
+
+        <div>
+          <label for="llaveroSelect">¿Llavero?</label>
+          <select id="llaveroSelect">
+            <option value="no">No</option>
+            <option value="si">Si</option>
+          </select>
+
+          <div id="llaveroQtyWrap" style="margin-top:8px;display:none">
+            <label for="llaveroQty">Cantidad de llaveros</label>
+            <input id="llaveroQty" type="number" min="0" step="1" value="0">
+            <div class="small muted-line">Precio por llavero: $200</div>
+          </div>
+        </div>
+
+        <div class="full">
+          <label for="manoHoras">Mano de obra - Horas</label>
+          <input id="manoHoras" type="number" min="0" step="0.25" value="0">
+          <div class="small muted-line">Precio por hora de mano de obra: $10.000</div>
+        </div>
+
+        <div class="full">
+          <label for="clienteTipo">Tipo de cliente (descuento)</label>
+          <select id="clienteTipo">
+            <option value="cliente">Cliente - 0%</option>
+            <option value="amigo">Amigo - 30%</option>
+            <option value="conocido">Conocido - 15%</option>
+          </select>
+        </div>
+
+        <div class="full row" style="justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="calcularBtn">Calcular</button>
+            <button id="resetBtn" style="background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04);">Reset</button>
+          </div>
+          <div class="small">Resultado actualizado en tiempo real si cambias valores.</div>
+        </div>
+
+      </div> <!-- grid -->
+
+      <div class="result" id="resultadoCard">
+        <div><strong>Precio final sugerido:</strong> <span id="precioFinal">$0.00</span></div>
+        <div class="breakdown" id="breakdown">
+          <div>
+            <div class="small">Costo filamento (base): <span id="cFilamento">$0.00</span></div>
+            <div class="small">Horas impresión (base): <span id="cHoras">$0.00</span></div>
+            <div class="small">Costo llaveros (base): <span id="cLlavero">$0.00</span></div>
+          </div>
+          <div>
+            <div class="small">Tandas: <span id="cTandas">1</span></div>
+            <div class="small">Mano de obra: <span id="cMano">$0.00</span></div>
+            <div class="small">Descuento aplicado: <span id="cDesc">0%</span></div>
+          </div>
+        </div>
+
+        <div class="muted-line" style="margin-top:10px">Notas: los precios por unidad (filamento, llavero, horas) están fijados en los parámetros solicitados. Recomendación: agregá margen de ganancia o impuestos si corresponde.</div>
+      </div>
+
+    </div><!-- card -->
+
+    <div style="margin-top:14px;color:var(--muted)">
+      <strong>Consideraciones / Preguntas:</strong>
+      <ul>
+        <li>He asumido que <em>la mano de obra no se multiplica por tandas</em>. ¿Querés que la mano de obra también se multiplique por tandas?</li>
+        <li>¿Querés incluir IVA/impuestos o un margen de ganancia fijo que se aplique después del descuento?</li>
+        <li>¿Hay un costo fijo por setup por tanda (tiempo de preparación) que deba sumarse?</li>
+        <li>¿Querés que el sistema guarde presupuestos o exporte a PDF/CSV?</li>
+      </ul>
+    </div>
+
+  </div> <!-- wrap -->
+
+<script>
+  // Precios fijos (según tu especificación)
+  const PRECIO_GRAMO = 20; // $ por gramo
+  const PRECIO_HORA_IMP = 30; // $ por hora de impresion
+  const PRECIO_LLAVERO = 200; // $ por llavero
+  const PRECIO_HORA_MANO = 10000; // $ por hora mano de obra
+
+  const filamentoEl = document.getElementById('filamento');
+  const horasImpEl = document.getElementById('horasImpresion');
+  const tandasEl = document.getElementById('tandas');
+  const llaveroSel = document.getElementById('llaveroSelect');
+  const llaveroQtyWrap = document.getElementById('llaveroQtyWrap');
+  const llaveroQtyEl = document.getElementById('llaveroQty');
+  const manoHorasEl = document.getElementById('manoHoras');
+  const clienteTipoEl = document.getElementById('clienteTipo');
+
+  const precioFinalEl = document.getElementById('precioFinal');
+  const cFilamentoEl = document.getElementById('cFilamento');
+  const cHorasEl = document.getElementById('cHoras');
+  const cLlaveroEl = document.getElementById('cLlavero');
+  const cTandasEl = document.getElementById('cTandas');
+  const cManoEl = document.getElementById('cMano');
+  const cDescEl = document.getElementById('cDesc');
+
+  function fmt(n){return '$' + Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function pct(n){return (n*100).toFixed(0) + '%';}
+
+  llaveroSel.addEventListener('change', ()=>{
+    llaveroQtyWrap.style.display = llaveroSel.value === 'si' ? 'block' : 'none';
+  });
+
+  // live update
+  [filamentoEl, horasImpEl, tandasEl, llaveroQtyEl, manoHorasEl, clienteTipoEl].forEach(el=>{
+    el.addEventListener('input', calcular);
+    el.addEventListener('change', calcular);
+  });
+
+  document.getElementById('calcularBtn').addEventListener('click', calcular);
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    filamentoEl.value = 0; horasImpEl.value = 0; tandasEl.value = 1; llaveroSel.value='no'; llaveroQtyWrap.style.display='none'; llaveroQtyEl.value=0; manoHorasEl.value=0; clienteTipoEl.value='cliente'; calcular();
+  });
+
+  function calcular(){
+    const gramos = Number(filamentoEl.value) || 0;
+    const horasImp = Number(horasImpEl.value) || 0;
+    const tandas = Math.max(1, Math.floor(Number(tandasEl.value) || 1));
+    const llaveroSelVal = llaveroSel.value;
+    const llaveroQty = llaveroSelVal === 'si' ? (Number(llaveroQtyEl.value) || 0) : 0;
+    const manoHoras = Number(manoHorasEl.value) || 0;
+
+    // costos base (por 1 tanda)
+    const costoFilamentoBase = gramos * PRECIO_GRAMO;
+    const costoHorasBase = horasImp * PRECIO_HORA_IMP;
+    const costoLlaveroBase = llaveroQty * PRECIO_LLAVERO;
+
+    // tandas multiplican filament, horas y llavero
+    const costoPorTandas = (costoFilamentoBase + costoHorasBase + costoLlaveroBase) * tandas;
+
+    // mano de obra NO multiplicada por tandas por defecto (se puede cambiar)
+    const costoMano = manoHoras * PRECIO_HORA_MANO;
+
+    const subtotal = costoPorTandas + costoMano;
+
+    // descuento segun tipo de cliente
+    const tipo = clienteTipoEl.value;
+    let descuento = 0;
+    if(tipo === 'amigo') descuento = 0.30;
+    if(tipo === 'conocido') descuento = 0.15;
+
+    const montoDescuento = subtotal * descuento;
+    const totalConDescuento = subtotal - montoDescuento;
+
+    // mostramos
+    precioFinalEl.innerText = fmt(totalConDescuento);
+
+    cFilamentoEl.innerText = fmt(costoFilamentoBase) + ' (por tanda)';
+    cHorasEl.innerText = fmt(costoHorasBase) + ' (por tanda)';
+    cLlaveroEl.innerText = fmt(costoLlaveroBase) + ' (por tanda)';
+    cTandasEl.innerText = tandas;
+    cManoEl.innerText = fmt(costoMano);
+    cDescEl.innerText = pct(descuento);
+  }
+
+  // calcular inicial
+  calcular();
+</script>
+</body>
+</html>
